@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Pro - Obsidian Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #121212; --bg-panel: #1E1E1E; --bg-sidebar: #181818;
+            --accent-orange: #F39708; --accent-red: #F85741; --accent-teal: #0E9094;
+            --accent-beige: #DACDAC; --text-light: #E0E0E0; --text-muted: #9E9E9E;
+            --border-color: rgba(255, 255, 255, 0.08); --card-radius: 12px; --transition: 0.3s ease;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-light); display: flex; height: 100vh; overflow: hidden; }
+        
+        .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; }
+        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; text-align: center; }
+        .sidebar-header h2 { color: var(--accent-orange); font-size: 1.4rem; }
+        .sidebar-controls { padding: 0 20px 20px; }
+        .sidebar-controls select { width: 100%; padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: var(--accent-beige); border: 1px solid var(--border-color); cursor: pointer; outline: none; }
+        .sidebar-nav { display: flex; flex-direction: column; gap: 5px; padding: 0 10px; flex-grow: 1; }
+        .sidebar-nav button { background: transparent; border: none; color: var(--text-muted); padding: 12px 20px; text-align: left; border-radius: 8px; cursor: pointer; font-size: 0.95rem; transition: var(--transition); }
+        .sidebar-nav button.active { background: rgba(14, 144, 148, 0.15); color: var(--accent-teal); border-left: 4px solid var(--accent-teal); }
+
+        .sync-actions { padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; }
+        .btn-sync { background: var(--bg-panel); color: var(--text-light); border: 1px solid var(--accent-teal); padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
+
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 30px 40px; }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+        .section-title { font-size: 1.8rem; margin-bottom: 25px; color: #fff; }
+        h3 { font-size: 1.1rem; color: var(--text-light); margin: 25px 0 15px 0; display: flex; align-items: center; gap: 10px; }
+        h3::before { content: ""; width: 4px; height: 18px; background: var(--accent-orange); border-radius: 2px; }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: var(--bg-panel); padding: 20px; border-radius: var(--card-radius); border-top: 4px solid var(--accent-teal); }
+        .card h4 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; }
+        .card p { font-size: 1.8rem; font-weight: 700; }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .chart-container { background: var(--bg-panel); padding: 20px; border-radius: var(--card-radius); height: 320px; display: flex; flex-direction: column; }
+        .full-width-chart { grid-column: 1 / -1; height: 400px; }
+        .chart-title { font-size: 0.95rem; color: var(--accent-beige); margin-bottom: 15px; font-weight: 600; }
+        .chart-wrapper { flex-grow: 1; position: relative; }
+
+        .table-wrapper { overflow-x: auto; background: var(--bg-panel); border-radius: var(--card-radius); margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: rgba(0,0,0,0.3); color: var(--text-muted); padding: 15px 10px; font-size: 0.8rem; }
+        td { border-bottom: 1px solid var(--border-color); padding: 12px 10px; text-align: center; color: #ccc; }
+        td[contenteditable] { background: rgba(0,0,0,0.15); outline: none; color: var(--accent-orange); }
+        .label-row { font-weight: 600; color: var(--accent-beige); text-align: left; padding-left: 20px; }
+
+        .goals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .card-input { background: var(--bg-panel); padding: 20px; border-radius: var(--card-radius); border-left: 4px solid var(--accent-orange); }
+        .card-input input { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-size: 1.5rem; width: 100%; padding: 10px; border-radius: 6px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--bg-panel); padding: 25px; border-radius: 12px; width: 80%; max-width: 500px; border: 1px solid var(--accent-orange); }
+        textarea#exportArea { width: 100%; height: 200px; background: #000; color: #07f9a2; padding: 10px; font-family: monospace; border: none; margin: 15px 0; resize: none; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header"><h2>Finance Pro</h2></div>
+        <div class="sidebar-controls">
+            <select id="mesFiltro" onchange="calcular()">
+                <option value="todos" selected>Total Anual</option>
+                <option value="media">Média Mensal</option>
+                <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+                <option value="3">Março</option><option value="4">Abril</option>
+                <option value="5">Maio</option><option value="6">Junho</option>
+                <option value="7">Julho</option><option value="8">Agosto</option>
+                <option value="9">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+            </select>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="active" onclick="switchTab('analytics', this)">Analytics</button>
+            <button onclick="switchTab('tabelas', this)">Tabelas / Dados</button>
+            <button onclick="switchTab('metas', this)">Metas e Reserva</button>
+            <button onclick="switchTab('investimentos', this)">Investimentos</button>
+        </nav>
+        <div class="sync-actions">
+            <button class="btn-sync" onclick="abrirModalExportacao()">📋 Guardar Dados (JSON)</button>
+            <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importData(event)">
+            <button class="btn-sync" onclick="document.getElementById('fileInput').click()">📂 Carregar Backup</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <section id="analytics" class="tab-section active">
+            <h1 class="section-title">Visão Geral</h1>
+            <div class="cards">
+                <div class="card"><h4>Renda</h4><p id="rendaTotal">0,00</p></div>
+                <div class="card" style="border-top-color: var(--accent-red);"><h4>Despesas</h4><p id="despesaTotal">0,00</p></div>
+                <div class="card" style="border-top-color: var(--accent-orange);"><h4>Investido</h4><p id="investTotal">0,00</p></div>
+                <div class="card" style="border-top-color: #2ECC71;"><h4>Saldo Livre</h4><p id="saldo">0,00</p></div>
+                <div class="card" style="border-top-color: #9B59B6;"><h4>Saúde (% Inv)</h4><p id="percentualInv">0%</p></div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container full-width-chart">
+                    <div class="chart-title">Evolução Anual Detalhada (Histórico)</div>
+                    <div class="chart-wrapper"><canvas id="graficoEvolucaoAnual"></canvas></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Distribuição Despesas</div>
+                    <div class="chart-wrapper"><canvas id="graficoPizzaDespesa"></canvas></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Balanços</div>
+                    <div class="chart-wrapper"><canvas id="graficoBarra"></canvas></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Alocação de Investimentos (Valor Bruto)</div>
+                    <div class="chart-wrapper"><canvas id="graficoBarraInv"></canvas></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Progresso das Metas</div>
+                    <div class="chart-wrapper"><canvas id="graficoMetasProgresso"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tabelas" class="tab-section">
+            <h1 class="section-title">Base de Dados</h1>
+            <h3>Renda</h3>
+            <div class="table-wrapper"><table id="tabelaRenda"><tbody id="bodyRenda">
+                <tr><th>Item</th><th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th><th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th></tr>
+                <tr><td class="label-row">Salário Principal</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Renda Extra</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+            </tbody></table></div>
+            <h3>Despesas</h3>
+            <div class="table-wrapper"><table id="tabelaDespesa"><tbody id="bodyDespesa">
+                <tr><th>Categoria</th><th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th><th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th></tr>
+                <tr><td class="label-row">Alimentação</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Transporte</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Moradia</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Lazer</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Compras</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Outros</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+            </tbody></table></div>
+        </section>
+
+        <section id="metas" class="tab-section">
+            <h1 class="section-title">Objetivos Financeiros</h1>
+            <div class="goals-grid">
+                <div class="card-input"><label>Meta de Investimento (CDB)</label><input type="text" id="metaInvestimento" value="15000"></div>
+                <div class="card-input" style="border-left-color: var(--accent-teal);"><label>Meta Reserva de Emergência</label><input type="text" id="metaReserva" value="10000"></div>
+                <div class="card-input" style="border-left-color: var(--accent-red);"><label>Meta Dinheiro Livre</label><input type="text" id="metaLivre" value="5000"></div>
+            </div>
+        </section>
+
+        <section id="investimentos" class="tab-section">
+            <h1 class="section-title">Controle de Investimentos</h1>
+            <h3>Aportes Mensais</h3>
+            <div class="table-wrapper"><table id="tabelaInvestimento"><tbody id="bodyInvest">
+                <tr><th>Ativo</th><th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th><th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th></tr>
+                <tr><td class="label-row">CDB</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Reserva de Emergência</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+                <tr><td class="label-row">Criptomoeda</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true">0</td></tr>
+            </tbody></table></div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal-content">
+            <h3>💾 Copiar Backup</h3>
+            <textarea id="exportArea" readonly></textarea>
+            <button onclick="document.getElementById('exportModal').style.display='none'" style="width:100%; padding:10px; cursor:pointer;">Fechar</button>
+        </div>
+    </div>
+
+<script>
+    const STORAGE_KEY = 'finance_pro_obsidian_v7_final';
+    let charts = {};
+    const cores = ['#0E9094', '#F85741', '#F39708', '#DACDAC', '#7B61FF', '#2ECC71', '#E67E22', '#9B59B6'];
+    let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+
+    function switchTab(id, btn) {
+        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        Object.values(charts).forEach(c => c.resize());
+    }
+
+    function init() {
+        if (appData) carregarDados();
+        inicializarGraficos();
+        calcular();
+        document.querySelectorAll('[contenteditable], input').forEach(el => el.addEventListener('input', () => { salvarDados(); calcular(); }));
+    }
+
+    function salvarDados() {
+        const extrair = (id) => Array.from(document.querySelectorAll(`#${id} tr`)).slice(1).map(tr => ({
+            label: tr.cells[0].innerText, vals: Array.from(tr.cells).slice(1).map(td => parseFloat(td.innerText.replace(',','.')) || 0)
+        }));
+        appData = { renda: extrair('bodyRenda'), despesa: extrair('bodyDespesa'), invest: extrair('bodyInvest'), metas: { inv: document.getElementById('metaInvestimento').value, res: document.getElementById('metaReserva').value, liv: document.getElementById('metaLivre').value } };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function carregarDados() {
+        const preencher = (id, data) => { if(!data) return; const rows = document.querySelectorAll(`#${id} tr`); data.forEach((row, i) => { const tr = rows[i+1]; if(tr) { tr.cells[0].innerText = row.label; row.vals.forEach((v, j) => tr.cells[j+1].innerText = v); } }); };
+        preencher('bodyRenda', appData.renda); preencher('bodyDespesa', appData.despesa); preencher('bodyInvest', appData.invest);
+        if(appData.metas) { document.getElementById('metaInvestimento').value = appData.metas.inv; document.getElementById('metaReserva').value = appData.metas.res; document.getElementById('metaLivre').value = appData.metas.liv; }
+    }
+
+    function inicializarGraficos() {
+        Chart.defaults.color = '#9E9E9E';
+        // 3. Grid mais claro em todos os gráficos (0.03 de opacidade)
+        Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.03)';
+        
+        const opt = { maintainAspectRatio: false, responsive: true };
+
+        charts.evolucao = new Chart(document.getElementById('graficoEvolucaoAnual'), {
+            type: 'line', data: { labels: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+            datasets: [
+                {label:'Renda', borderColor:'#0E9094', data:[], tension:0.4},
+                {label:'Despesas', borderColor:'#F85741', data:[], tension:0.4},
+                {label:'Investido', borderColor:'#F39708', data:[], tension:0.4}
+            ]}, options: opt
+        });
+
+        // Distribuição Despesas (Rosca) - Sem legendas inferiores
+        charts.pieDesp = new Chart(document.getElementById('graficoPizzaDespesa'), {
+            type: 'doughnut', data: { labels: [], datasets: [{ backgroundColor: cores, data: [] }] },
+            options: { ...opt, cutout: '70%', plugins: { legend: { position: 'right' } }, scales: { x: { display: false }, y: { display: false } } }
+        });
+
+        // 1 & 2. Balanços (Stacked) - Sem legendas poluindo
+        charts.bar = new Chart(document.getElementById('graficoBarra'), {
+            type: 'bar', data: { labels: ['Renda', 'Despesa', 'Invest.'], datasets: [] },
+            options: { ...opt, plugins: { legend: { display: false } }, scales: { x: { stacked: true }, y: { stacked: true } } }
+        });
+
+        // 3. Alocação (Vermelho conforme solicitado)
+        charts.barInv = new Chart(document.getElementById('graficoBarraInv'), {
+            type: 'bar', data: { labels: ['CDB', 'Reserva', 'Cripto'], datasets: [{ backgroundColor: '#F85741', data: [] }] },
+            options: { ...opt, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+        });
+
+        charts.metas = new Chart(document.getElementById('graficoMetasProgresso'), {
+            type: 'bar', data: { labels: [], datasets: [{label: 'Progresso', data: [], backgroundColor:'#10b981'}, {label: 'Restante', data: [], backgroundColor:'rgba(255,255,255,0.05)'}]},
+            options: { ...opt, indexAxis: 'y', scales: { x: { stacked: true, max: 100 }, y: { stacked: true } }, plugins:{legend:{display:false}}}
+        });
+    }
+
+    function calcular() {
+        const filtro = document.getElementById("mesFiltro").value;
+        const ler = (id, dic) => {
+            let mensal = Array(12).fill(0); let totalF = 0; let fatias = [];
+            document.querySelectorAll(`#${id} tr`).forEach((tr, i) => {
+                if(i===0) return;
+                let vals = Array.from(tr.cells).slice(1).map(td => parseFloat(td.innerText.replace(',','.')) || 0);
+                vals.forEach((v, idx) => mensal[idx] += v);
+                let vF = (filtro==='todos') ? vals.reduce((a,b)=>a+b,0) : (filtro==='media' ? vals.reduce((a,b)=>a+b,0)/12 : vals[parseInt(filtro)-1]);
+                fatias.push({label: tr.cells[0].innerText, value: vF});
+                totalF += vF;
+            });
+            return { mensal, totalF, fatias };
+        };
+
+        const r = ler('bodyRenda'); const d = ler('bodyDespesa'); const i = ler('bodyInvest');
+
+        document.getElementById('rendaTotal').innerText = r.totalF.toLocaleString('pt-BR');
+        document.getElementById('despesaTotal').innerText = d.totalF.toLocaleString('pt-BR');
+        document.getElementById('investTotal').innerText = i.totalF.toLocaleString('pt-BR');
+        document.getElementById('saldo').innerText = (r.totalF - d.totalF - i.totalF).toLocaleString('pt-BR');
+        document.getElementById('percentualInv').innerText = r.totalF>0 ? (i.totalF/r.totalF*100).toFixed(1)+'%' : '0%';
+
+        charts.evolucao.data.datasets[0].data = r.mensal;
+        charts.evolucao.data.datasets[1].data = d.mensal;
+        charts.evolucao.data.datasets[2].data = i.mensal;
+        charts.evolucao.update();
+
+        charts.pieDesp.data.labels = d.fatias.filter(f => f.value > 0).map(f => f.label);
+        charts.pieDesp.data.datasets[0].data = d.fatias.filter(f => f.value > 0).map(f => f.value);
+        charts.pieDesp.update();
+
+        // Balanço Segmentado
+        let datasetsBar = [];
+        r.fatias.forEach((f, idx) => datasetsBar.push({ label: f.label, data: [f.value, 0, 0], backgroundColor: cores[idx % cores.length] }));
+        d.fatias.forEach((f, idx) => datasetsBar.push({ label: f.label, data: [0, f.value, 0], backgroundColor: cores[(idx+2) % cores.length] }));
+        i.fatias.forEach((f, idx) => datasetsBar.push({ label: f.label, data: [0, 0, f.value], backgroundColor: cores[(idx+4) % cores.length] }));
+        charts.bar.data.datasets = datasetsBar;
+        charts.bar.update();
+
+        const vCdb = i.fatias.find(f => f.label === "CDB")?.value || 0;
+        const vRes = i.fatias.find(f => f.label === "Reserva de Emergência")?.value || 0;
+        const vCrp = i.fatias.find(f => f.label === "Criptomoeda")?.value || 0;
+        charts.barInv.data.datasets[0].data = [vCdb, vRes, vCrp];
+        charts.barInv.update();
+
+        const mRes = parseFloat(document.getElementById('metaReserva').value) || 1;
+        const mInv = parseFloat(document.getElementById('metaInvestimento').value) || 1;
+        const pRes = Math.min(100, (vRes / mRes) * 100);
+        const pCdb = Math.min(100, (vCdb / mInv) * 100);
+
+        charts.metas.data.labels = [`Reserva (${pRes.toFixed(0)}%)`, `CDB (${pCdb.toFixed(0)}%)`];
+        charts.metas.data.datasets[0].data = [pRes, pCdb];
+        charts.metas.data.datasets[1].data = [100 - pRes, 100 - pCdb];
+        charts.metas.update();
+    }
+
+    function abrirModalExportacao() { document.getElementById('exportArea').value = JSON.stringify(appData, null, 2); document.getElementById('exportModal').style.display = 'flex'; }
+    function importData(event) { const file = event.target.files[0]; const reader = new FileReader(); reader.onload = (e) => { localStorage.setItem(STORAGE_KEY, e.target.result); location.reload(); }; reader.readAsText(file); }
+    window.onload = init;
+</script>
+</body>
+</html>
