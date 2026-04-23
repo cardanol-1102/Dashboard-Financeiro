@@ -1504,6 +1504,89 @@ textarea.mono-area {
 </head>
 <body data-theme="matrix" data-rain="on" data-density="comfy">
 
+<style id="login-style">
+#login-overlay {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #050a06;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+}
+#login-overlay.hidden { display: none; }
+.login-box {
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  border: 1px solid rgba(0,230,118,0.2); border-radius: 10px;
+  padding: 40px 36px; background: rgba(10,18,11,0.95);
+  box-shadow: 0 0 60px rgba(0,230,118,0.06);
+  min-width: 300px;
+}
+.login-tag  { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(0,230,118,0.45); text-transform: uppercase; }
+.login-title { font-size: 1.1rem; font-weight: 700; color: #e8f5e9; letter-spacing: 0.05em; }
+.login-input {
+  width: 100%; background: #020504; color: #00e676;
+  border: 1px solid rgba(0,230,118,0.2); border-radius: 5px;
+  padding: 10px 14px; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem; outline: none; letter-spacing: 0.1em;
+  text-align: center; transition: border-color 0.2s;
+}
+.login-input:focus { border-color: rgba(0,230,118,0.6); }
+.login-input.error { border-color: #ff4757; animation: shake 0.3s ease; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+}
+.login-btn {
+  width: 100%; padding: 10px; background: transparent;
+  border: 1px solid rgba(0,230,118,0.4); color: #00e676;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  border-radius: 5px; cursor: pointer; transition: all 0.2s;
+}
+.login-btn:hover { background: rgba(0,230,118,0.08); border-color: #00e676; }
+.login-error { font-size: 0.65rem; color: #ff4757; letter-spacing: 0.1em; min-height: 16px; }
+</style>
+
+<div id="login-overlay">
+  <div class="login-box">
+    <span class="login-tag">// acesso restrito</span>
+    <span class="login-title">MATRIX HUB</span>
+    <input class="login-input" type="password" id="loginInput" placeholder="senha" autocomplete="current-password" onkeydown="if(event.key==='Enter') checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">entrar</button>
+    <span class="login-error" id="loginError"></span>
+  </div>
+</div>
+
+<script id="login-script">
+(function() {
+  const PASS = '81231980leo';
+  const SESSION_KEY = 'hub_auth';
+
+  function checkLogin() {
+    const input = document.getElementById('loginInput');
+    const val = input.value;
+    if (val === PASS) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      document.getElementById('login-overlay').classList.add('hidden');
+      input.value = '';
+    } else {
+      input.classList.add('error');
+      document.getElementById('loginError').textContent = 'senha incorreta';
+      setTimeout(() => { input.classList.remove('error'); input.value = ''; input.focus(); }, 600);
+    }
+  }
+  window.checkLogin = checkLogin;
+
+  if (sessionStorage.getItem(SESSION_KEY) !== '1') {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loginInput').focus();
+    });
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('login-overlay').classList.add('hidden');
+    });
+  }
+})();
+</script>
+
+
 <canvas id="matrix-bg"></canvas>
 
 <!-- ══════════════════════════════════════ TOPBAR -->
